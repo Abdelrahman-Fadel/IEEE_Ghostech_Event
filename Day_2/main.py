@@ -1,7 +1,8 @@
 from keras.models import load_model  # TensorFlow is required for Keras to work
 import cv2  # Install opencv-python
 import numpy as np
-
+import serial
+arduino = serial.Serial("COM5" , 9600)
 # Disable scientific notation for clarity
 np.set_printoptions(suppress=True)
 
@@ -17,12 +18,11 @@ camera = cv2.VideoCapture(0)
 while True:
     # Grab the webcamera's image.
     ret, image = camera.read()
-
-    # Resize the raw image into (224-height,224-width) pixels
-    image = cv2.resize(image, (224, 224), interpolation=cv2.INTER_AREA)
-
+    image = cv2.flip(image , 180)
     # Show the image in a window
     cv2.imshow("Webcam Image", image)
+    # Resize the raw image into (224-height,224-width) pixels
+    image = cv2.resize(image, (224, 224), interpolation=cv2.INTER_AREA)
 
     # Make the image a numpy array and reshape it to the models input shape.
     image = np.asarray(image, dtype=np.float32).reshape(1, 224, 224, 3)
@@ -33,11 +33,12 @@ while True:
     # Predicts the model
     prediction = model.predict(image)
     index = np.argmax(prediction)
-    class_name = class_names[index]
+    class_name = class_names[index][2:]
     confidence_score = prediction[0][index]
+    arduino.write(class_name.encode())
 
     # Print prediction and confidence score
-    print("Class:", class_name[2:], end="")
+    print("Class:", class_name, end="")
     print("Confidence Score:", str(np.round(confidence_score * 100))[:-2], "%")
 
     # Listen to the keyboard for presses.
